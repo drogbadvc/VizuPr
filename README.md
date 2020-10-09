@@ -26,7 +26,7 @@ Niveau Front HTML :
 python bin/spider.py
 ```
 - Lancer le calcul du PageRank avec le nombre d'itérations. Plus le site est important, plus le calcul est lent. Stockage du résultat dans la base de donnée. 
-Possibilité de lancer plusieurs fois pour affiner le classement. [*note](#notes-importante)
+Possibilité de lancer plusieurs fois pour affiner le classement. [*note](#notes-importantes)
 ```bash
 python bin/sprank.py
 ```
