@@ -4,6 +4,9 @@ Dépôt pour un brouillon d'outil de visualisation de la structure d'un site int
 En pratique le script en l'état (crawl) un site simplement en enregistrant dans une base SQLite (Nœuds, Urls, html, rank ...)
 Puis il stocke dans un json plus de données de la structure html et calcul du PageRank aléatoire avec choix de plusieurs itérations. 
 
+## Démo
+[![Demo CountPages alpha](https://j.gifs.com/K1p4pG.gif)](https://www.youtube.com/watch?v=V5ZCNrpoUhg)
+
 Niveau Front HTML : 
 
 - Vue de la structure via plusieurs algorithme comme ForceAtlas2 (**instable**), ForceinaBox, Force Layout et FirstLink.
