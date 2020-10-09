@@ -1,0 +1,15 @@
+body { font-family: Helvetica }
+.node {
+  stroke: #fff;
+  stroke-width: 1.5px;
+}
+
+.link {
+  stroke: #ccc;
+  stroke-opacity: .6;
+}
+
+.cell {
+  fill: none;
+  stroke: grey;
+}

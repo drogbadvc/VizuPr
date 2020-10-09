@@ -1,0 +1,394 @@
+<!--#include file="./template/hforce.html" -->
+<body style="font-family: sans-serif;" data-layout="horizontal" data-topbar="dark">
+<!--#include file="./template/bar.html" -->
+
+<div class="row">
+    <div class="col-lg-12">
+        <div class="card">
+            <div class="card-body">
+                <h4 class="card-title mb-4"><span id="root_url"></span></h4>
+
+                <ul class="nav nav-tabs" id="myTab" role="tablist">
+                    <li class="nav-item">
+                        <a class="nav-link" href="force.html" role="tab"
+                           aria-controls="profile" aria-selected="false"> Group-in-a-box layout algorithm</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="hierarchy.html" role="tab"
+                           aria-controls="force" aria-selected="false"> Hierarchical Force algorithm</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="treecollaps.html" role="tab"
+                           aria-controls="force" aria-selected="false"> Collapsible Force algorithm</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" data-toggle="tab" href="forceatlas2.html" role="tab"
+                           aria-controls="profile" aria-selected="false">Force Atlas 2</a>
+                    </li>
+                </ul>
+
+                <div id="container"></div>
+
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-12">
+        <div class="card">
+            <div class="card-body">
+                <h4 class="card-title mb-4">Urls List</h4>
+                <div class="table-responsive">
+                    <table class="table table-nowrap table-centered mb-0">
+                        <thead>
+                        <tr>
+                            <th scope="col">#</th>
+                            <th scope="col">URL</th>
+                            <th scope="col">Poids</th>
+                            <th scope="col">Variation PR</th>
+                        </tr>
+                        </thead>
+                        <tbody id="tbody">
+
+                        </tbody>
+                    </table>
+                    <div id="modals"></div>
+                </div>
+            </div>
+        </div>
+        <script>
+            var graph = spiderJson;
+            let dataRank = []
+            let dataGroup = []
+            let i
+            graph.nodes.forEach((item, key) => {
+                dataRank[key !== 0 ? item.rank : 'home'] = []
+            })
+            for (i = 0; i < graph.nodes.length; i++) {
+                if (graph.nodes[i] !== undefined) {
+                    graph.nodes[i]['i'] = i
+                    if (i !== 0) {
+                        dataRank[graph.nodes[i].rank].push(graph.nodes[i])
+                    }
+                }
+            }
+            dataRank['home'].push(graph.nodes[0])
+
+            const dataRankKeys = Object.keys(dataRank)
+            const dataSortReverse = dataRankKeys.sort().reverse()
+            const newDataRank = []
+            dataSortReverse.forEach((key) => {
+                newDataRank['key-' + key.toString()] = key !== 'home' ? dataRank[parseFloat(key)] : dataRank['home']
+            })
+
+            const dataValues = Object.values(newDataRank)
+            dataValues.forEach((item, key) => {
+                item.forEach((element) => {
+                    if (element.i !== undefined && parseInt(element.i) === 0) {
+                        element['group'] = 1
+                    } else {
+                        if (i !== 0) {
+                            element['group'] = (key + 1) === 1 ? (key + 1) + 1 : (key + 1)
+                        }
+                    }
+                    dataGroup.push(element)
+                })
+            })
+
+            var data = graph.nodes
+            let dataTitle = []
+
+            data.forEach((item => {
+                dataTitle.push(item.title)
+            }))
+
+            var uniq = dataTitle
+                .map((name) => {
+                    return {
+                        count: 1,
+                        name: name
+                    }
+                })
+                .reduce((a, b) => {
+                    a[b.name] = (a[b.name] || 0) + b.count
+                    return a
+                }, {})
+
+            sigma.classes.graph.addMethod('neighbors', function (nodeId) {
+                var k,
+                    neighbors = {},
+                    index = this.allNeighborsIndex[nodeId] || {};
+
+                for (k in index)
+                    neighbors[k] = this.nodesIndex[k];
+
+                return neighbors;
+            });
+
+            sigma.canvas.edges.t = function (edge, source, target, context, settings) {
+                var color = edge.color,
+                    prefix = settings('prefix') || '',
+                    edgeColor = settings('edgeColor'),
+                    defaultNodeColor = settings('defaultNodeColor'),
+                    defaultEdgeColor = settings('defaultEdgeColor');
+
+                if (!color)
+                    switch (edgeColor) {
+                        case 'source':
+                            color = source.color || defaultNodeColor;
+                            break;
+                        case 'target':
+                            color = target.color || defaultNodeColor;
+                            break;
+                        default:
+                            color = defaultEdgeColor;
+                            break;
+                    }
+
+                context.strokeStyle = color;
+                context.lineWidth = edge[prefix + 'size'] || 1;
+                context.beginPath();
+                context.moveTo(
+                    source[prefix + 'x'],
+                    source[prefix + 'y']
+                );
+                context.lineTo(
+                    source[prefix + 'x'],
+                    target[prefix + 'y']
+                );
+                context.lineTo(
+                    target[prefix + 'x'],
+                    target[prefix + 'y']
+                );
+                context.stroke();
+            };
+
+
+            /**
+             * This example shows the available edge label renderers for the canvas
+             * renderer.
+             */
+            var iii,
+                s,
+                N = 100,
+                E = 300,
+                g = {
+                    nodes: [],
+                    edges: []
+                },
+                colorHex = ["#c03320",
+                    "#21d4a8",
+                    "#a731a9",
+                    "#5ac446",
+                    "#724bc9",
+                    "#adc133",
+                    "#3d60dd",
+                    "#4a981d",
+                    "#996aea",
+                    "#86b940",
+                    "#3c4dbb",
+                    "#d7b437",
+                    "#5e7bf1",
+                    "#e19223",
+                    "#4362c2",
+                    "#45c66a",
+                    "#d16ee0",
+                    "#3c9744",
+                    "#e156bb",
+                    "#337123",
+                    "#9549b6",
+                    "#81be6d",
+                    "#774eb8",
+                    "#af9022",
+                    "#5c51b1",
+                    "#6c8b2d",
+                    "#bc80ec",
+                    "#97a040",
+                    "#834ca7",
+                    "#afc168",
+                    "#e43588",
+                    "#53c38c",
+                    "#e52f66",
+                    "#4bccbd",
+                    "#ea5c37",
+                    "#4691eb",
+                    "#e28031",
+                    "#2d5da8",
+                    "#ba5a1a",
+                    "#53a4e5",
+                    "#a44820",
+                    "#5fb9e5",
+                    "#dc4453",
+                    "#3bbac6",
+                    "#b03d36",
+                    "#329d7d",
+                    "#b1337e",
+                    "#428f5c",
+                    "#b53062",
+                    "#7bbd94",
+                    "#a7519d",
+                    "#556912",
+                    "#9678d8",
+                    "#c4b65c",
+                    "#6b4fa0",
+                    "#8b7f2b",
+                    "#8489e0",
+                    "#616117",
+                    "#dd8dd6",
+                    "#5b8847",
+                    "#e66fab",
+                    "#306a3c",
+                    "#df5c81",
+                    "#1a6447",
+                    "#e27b4e",
+                    "#4275ba",
+                    "#e6a25c",
+                    "#494b93",
+                    "#ba833d",
+                    "#6462ad",
+                    "#986320",
+                    "#bea1e9",
+                    "#695711",
+                    "#784389",
+                    "#a9b577",
+                    "#4a5589",
+                    "#d4b172",
+                    "#6c669f",
+                    "#765113",
+                    "#889bd7",
+                    "#4d662b",
+                    "#a47bb8",
+                    "#808c51",
+                    "#8a5990",
+                    "#37846c",
+                    "#aa3e4d",
+                    "#3787b2",
+                    "#ed8779",
+                    "#5e622c",
+                    "#db88ad",
+                    "#847037",
+                    "#9d476e",
+                    "#d39a71",
+                    "#93577c",
+                    "#986941",
+                    "#d9828b",
+                    "#814a28",
+                    "#914d5a",
+                    "#c16858",
+                    "#974b38"];
+
+            // Generate a random graph:
+            graph.nodes.forEach((item, key) => {
+                var id = key
+                g.nodes.push({
+                    id: id,
+                    label: item.url,
+                    x: 100 - 200 * Math.random(),
+                    y: 100 - 200 * Math.random(),
+                    size: item.rank * 3,
+                    color: colorHex[Math.floor(item.group)]
+                })
+            })
+
+            graph.links.forEach((item, key) => {
+                if (item.target !== item.source) {
+                    g.edges.push({
+                        id: 'e' + key,
+                        label: 'Edge ' + key,
+                        source: item.target,
+                        target: item.source,
+                        size: 0,
+                        color: colorHex[item.source.group],
+                        type: ['curve'][Math.random() * 4 | 0]
+                    })
+                }
+            })
+
+            // Instantiate sigma:
+            s = new sigma({
+                graph: g,
+                renderer: {
+                    container: document.getElementById('container'),
+                    type: 'canvas'
+                },
+                settings: {
+                    minNodeSize: 2.5,
+                    maxNodeSize: 5,
+                    minEdgeSize: 0.1,
+                    maxEdgeSize: 0.1,
+                    edgesPowRatio: 0.6,
+                },
+                drawingProperties: {
+                    defaultLabelColor: '#fff',
+                    defaultLabelSize: 14,
+                    defaultLabelBGColor: '#fff',
+                    defaultLabelHoverColor: '#000',
+                    labelThreshold: 6,
+                    defaultEdgeType: 'curve',
+                    borderSize: 0.4,//Something other than 0
+                    nodeBorderColor: "default",//exactly like this
+                    defaultNodeBorderColor: "#000",//Any color of your choice
+                    defaultBorderView: "always"//apply the default color to all nodes always (normal+hover)
+                }
+            });
+
+            s.graph.edges().forEach(function (edge) {
+                edge.type = "curve";
+            });
+
+            s.bind('clickNode', function (e) {
+                var nodeId = e.data.node.id
+                var colorHex = e.data.node.color
+                toKeep = s.graph.neighbors(nodeId);
+                toKeep[nodeId] = e.data.node;
+                s.graph.nodes().forEach(function (n) {
+                    if (!toKeep[n.id])
+                        n.color = '#eee';
+                });
+
+                s.graph.edges().forEach(function (e) {
+                    if (!toKeep[e.source] && !toKeep[e.target])
+                        e.color = '#eee';
+                });
+
+                s.refresh();
+            })
+
+            s.bind('clickStage', function (e) {
+                s.graph.nodes().forEach(function (n) {
+                    n.color = colorHex[Math.floor(graph.nodes[n.id].group)];
+                });
+
+                s.graph.edges().forEach(function (e) {
+                    id = e.id.substring(1);
+                    e.color = colorHex[Math.floor(graph.links[id].source.group)];
+                });
+                s.refresh();
+            });
+
+            // Start the ForceAtlas2 algorithm:
+            var config = {
+                worker: true,
+                barnesHutOptimize: true,
+                barnesHutTheta: 1.4,
+                outboundAttractionDistribution: false,
+                linLogMode: false,
+                adjustSizes: false,
+                gravity: 100,
+                strongGravityMode: false,
+                startingIterations: 10,
+                iterationsPerRender: 10,
+                edgeWeightInfluence: 0,
+                scalingRatio: 30,
+                nodeMargin: 3.0,
+                scaleNodes: 1.3
+            }
+
+
+            // Start the algorithm:
+
+            s.startForceAtlas2(config);
+            window.setTimeout(function () {
+                s.killForceAtlas2()
+            }, 10000);
+            s.refresh();
+            <!--#include file="./template/list.html" -->
+        </script>

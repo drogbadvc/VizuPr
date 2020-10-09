@@ -1,0 +1,23 @@
+{
+  "name": "pagerank",
+  "version": "1.0.0",
+  "description": "Dépôt pour un brouillon d'outil de visualisation de la structure d'un site internet.  En pratique le script en l'état (crawl) un site simplement en enregistrant dans une base SQLite (Nœuds, Urls, html, rank ...) Puis il stocke dans un json plus de données de la structure html et calcul du PageRank aléatoire avec choix de plusieurs itérations.",
+  "main": "sigma.js",
+  "dependencies": {
+    "d3-force-sampled": "^1.0.0"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://gitlab.com/Andell/pagerank.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://gitlab.com/Andell/pagerank/issues"
+  },
+  "homepage": "https://gitlab.com/Andell/pagerank#README"
+}

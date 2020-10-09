@@ -1,0 +1,520 @@
+<!--#include file="./template/hforce.html" -->
+<body style="font-family: sans-serif;" data-layout="horizontal" data-topbar="dark">
+<!--#include file="./template/bar.html" -->
+
+<div class="row">
+    <div class="col-lg-12">
+        <div class="card">
+            <div class="card-body">
+                <h4 class="card-title mb-4"><span id="root_url"></span></h4>
+
+                <ul class="nav nav-tabs" id="myTab" role="tablist">
+                    <li class="nav-item">
+                        <a class="nav-link active" id="home-tab" data-toggle="tab" href="#home" role="tab"
+                           aria-controls="profile" aria-selected="false"> Group-in-a-box layout algorithm</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="hierarchy.html" role="tab"
+                           aria-controls="force" aria-selected="false"> Hierarchical Force algorithm</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="treecollaps.html" role="tab"
+                           aria-controls="force" aria-selected="false"> Collapsible Force algorithm</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="forceatlas2.html" role="tab"
+                           aria-controls="profile" aria-selected="false">Force Atlas 2</a>
+                    </li>
+                </ul>
+
+            </div>
+
+            <div class="tab-content" id="myTabContent">
+                <div class="tab-pane fade show active" id="home" role="tabpanel" aria-labelledby="home-tab">
+                    <p></p>
+                    <div class="container">
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="form-group">
+                                    <select class="form-control" id="selectTemplate" type="select">
+                                        <option value="treemap">Treemap</option>
+                                        <option value="force">Force</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" value="" id="checkShowCode">
+                                    <label class="form-check-label" for="checkShowCode">
+                                        Show code status
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" value="" id="checkShowRobots">
+                                    <label class="form-check-label" for="checkShowRobots">
+                                        Show Blocked Bots
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" value="" id="checkShowTitle">
+                                    <label class="form-check-label" for="checkShowTitle">
+                                        Show Duplicate Title
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" value="" id="checkShowFollow">
+                                    <label class="form-check-label" for="checkShowFollow">
+                                        Show Nofollow
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="chart"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-12">
+        <div class="card">
+            <div class="card-body">
+                <h4 class="card-title mb-4">Urls List</h4>
+                <div class="table-responsive">
+                    <table class="table table-nowrap table-centered mb-0">
+                        <thead>
+                        <tr>
+                            <th scope="col">#</th>
+                            <th scope="col">URL</th>
+                            <th scope="col">Poids</th>
+                            <th scope="col">Variation PR</th>
+                        </tr>
+                        </thead>
+                        <tbody id="tbody">
+
+                        </tbody>
+                    </table>
+                    <div id="modals"></div>
+                </div>
+            </div>
+        </div>
+        <script>
+            var graph = spiderJson;
+
+            let dataRank = []
+            let dataGroup = []
+            let i
+            graph.nodes.forEach((item, key) => {
+                dataRank[key !== 0 ? item.rank : 'home'] = []
+            })
+            for (i = 0; i < graph.nodes.length; i++) {
+                if (graph.nodes[i] !== undefined) {
+                    graph.nodes[i]['i'] = i
+                    if (i !== 0) {
+                        dataRank[graph.nodes[i].rank].push(graph.nodes[i])
+                    }
+                }
+            }
+            dataRank['home'].push(graph.nodes[0])
+
+            const dataRankKeys = Object.keys(dataRank)
+            const dataSortReverse = dataRankKeys.sort().reverse()
+            const newDataRank = []
+            dataSortReverse.forEach((key) => {
+                newDataRank['key-' + key.toString()] = key !== 'home' ? dataRank[parseFloat(key)] : dataRank['home']
+            })
+
+            const dataValues = Object.values(newDataRank)
+            dataValues.forEach((item, key) => {
+                item.forEach((element) => {
+                    if (element.i !== undefined && parseInt(element.i) === 0) {
+                        element['group'] = 1
+                    } else {
+                        if (i !== 0) {
+                            element['group'] = (key + 1) === 1 ? (key + 1) + 1 : (key + 1)
+                        }
+                    }
+                    dataGroup.push(element)
+                })
+            })
+
+            var data = graph.nodes
+            let dataTitle = []
+
+            data.forEach((item => {
+                dataTitle.push(item.title)
+            }))
+
+            var uniq = dataTitle
+                .map((name) => {
+                    return {
+                        count: 1,
+                        name: name
+                    }
+                })
+                .reduce((a, b) => {
+                    a[b.name] = (a[b.name] || 0) + b.count
+                    return a
+                }, {})
+
+            var useGroupInABox = true
+            var drawCode = false
+            var drawRobots = false
+            var drawFollow = false
+            var drawTitle = false
+            var template = "treemap"
+            d3.select("#selectTemplate").property("value", template);
+            d3.select("#checkShowCode").property("checked", drawCode);
+            d3.select("#checkShowRobots").property("checked", drawRobots);
+
+            var width = document.getElementById("myTab").offsetWidth,
+                height = 900;
+
+            console.log(graph)
+
+            var color = d3.scaleOrdinal(d3.schemeCategory20);
+
+            var duplicates = Object.keys(uniq).filter((a) => uniq[a] > 1)
+            var arr_t = []
+            data.forEach((item) => {
+                duplicates.forEach((value) => {
+                    var title = item.title
+                    if (title == value) {
+                        item['id_t'] = md5(value);
+                    }
+                })
+                arr_t.push(item)
+            })
+
+
+            var radius = d3.scaleSqrt()
+                .range([0, 6]);
+
+            var force = d3
+                .forceSimulation()
+                .velocityDecay(0.2)
+                .nodes(graph.nodes)
+                .force("link",
+                    d3.forceLink().id(function (d) {
+                        return d.id;
+                    })
+                        .distance(function (d) {
+                            return radius(d.source.value / 2) + radius(d.target.value / 2);
+                        })
+                        .strength(function (d) {
+                            return 0.75;
+                        })
+                )
+                .force("group", groupingForce)
+                .force("collide", d3.forceCollide().radius(function (d) {
+                    return d.value;
+                }).iterations(2))
+                .force("charge", d3.forceManyBody())
+                .force("center", d3.forceCenter(width / 2, height / 2))
+                .force("forceX", d3.forceX())
+                .force("forceY", d3.forceY())
+
+            force.alpha(0.3).restart();
+
+            var svg = d3
+                .select("#chart")
+                .append("svg")
+                .attr("width", width)
+                .attr("height", height)
+                .attr("viewbox", "0 0 " + width + " " + height)
+                .attr("preserveAspectRatio", "xMidYMid meet")
+                .attr("pointer-events", "all")
+
+            var groupingForce = forceInABox()
+                .strength(0.1) // Strength to foci
+                .template('treemap') // Either treemap or force
+                .groupBy("group") // Node attribute to group
+                .links(graph.links) // The graph links. Must be called after setting the grouping attribute
+                .enableGrouping(useGroupInABox)
+                .forceNodeSize(15) // Used to compute the size of the template nodes, think of it as the radius the node uses, including its padding
+                .linkStrengthIntraCluster(0.1)
+                .linkStrengthInterCluster(0.01)
+                .size([width, height]); // Size of the chart
+
+            force
+                .nodes(graph.nodes)
+                .force("group", groupingForce)
+                .force("charge", d3.forceManyBody())
+                .force("link", d3.forceLink(graph.links)
+                    .distance(0)
+                    .strength(groupingForce.getLinkStrength)
+                );
+
+
+            function getrank(rval) {
+                return (rval / 2.0) + 3;
+            }
+
+            var link = svg
+                .append("g")
+                .attr("class", "link")
+                .selectAll("path")
+                .data(graph.links)
+                .enter()
+                .append("svg:path")
+                .attr("stroke-width", function (d) {
+                    return 0.6
+                });
+
+            link.style('fill', 'none')
+                .style('stroke', '#ccc')
+                .style("stroke-width", '1px');
+
+            var node = svg
+                .append("g")
+                .attr("class", "nodes")
+                .selectAll("g")
+                .data(graph.nodes)
+                .enter()
+                .append("g")
+                .style('transform-origin', '50% 50%')
+                .call(
+                    d3
+                        .drag()
+                        .on("start", dragstarted)
+                        .on("drag", dragged)
+                        .on("end", dragended)
+                );
+
+            node.append('circle')
+                .attr("r", function (d) {
+                    return radius((d.rank / 2) + 1);
+                })
+                .attr("fill", function (d) {
+                    return color(d.group);
+                })
+
+            node.append("title").text(function (d) {
+                return d.url;
+            });
+
+            force
+                .nodes(graph.nodes)
+                .on("tick", ticked);
+
+            force.force("link")
+                .links(graph.links);
+
+            //Zoom functions
+            function zoom_actions() {
+                g.attr("transform", d3.event.transform)
+            }
+
+            function ticked() {
+                link.attr("d", function (d) {
+                    var dx = d.target.x - d.source.x,
+                        dy = d.target.y - d.source.y,
+                        dr = Math.sqrt(dx * dx + dy * dy);
+                    return "M" +
+                        d.source.x + "," +
+                        d.source.y + "A" +
+                        dr + "," + dr + " 0 0,1 " +
+                        d.target.x + "," +
+                        d.target.y;
+                });
+                node.attr("transform", function (d) {
+                    return "translate(" + d.x + "," + d.y + ")";
+                });
+            }
+
+            $('input.form-check-input').on('change', function () {
+                $('input.form-check-input').not(this).prop('checked', false);
+            });
+
+            d3.select("#checkGroupInABox").on("change", onCheckGroupInABox);
+
+            d3.select("#selectTemplate").on("change", function () {
+                template = d3.select("#selectTemplate").property("value");
+                force.stop();
+                force.force("group").template(template);
+                force.alphaTarget(0.5).restart();
+            });
+
+            d3.select("#checkShowFollow").on("change", function (e) {
+                drawFollow = d3.select("#checkShowFollow").property("checked");
+                var circle = document.querySelectorAll('circle')
+                if (drawFollow) {
+                    force.stop();
+                    circle.forEach(item => {
+                        item.remove()
+                    })
+                    node.append('circle')
+                        .attr("r", function (d) {
+                            return radius((d.rank / 2) + 1);
+                        })
+                        .attr("fill", function (d) {
+                            if (d.nofollow === "follow") {
+                                return '#0984e3'
+                            }
+                            if (d.nofollow === "nofollow") {
+                                return '#d63031'
+                            }
+                        })
+                    force.alphaTarget(0.5).restart();
+                } else {
+                    circle.forEach(item => {
+                        item.remove()
+                    })
+                    node.append('circle')
+                        .attr("r", function (d) {
+                            return radius((d.rank / 2) + 1);
+                        })
+                        .attr("fill", function (d) {
+                            return color(d.group);
+                        })
+                }
+            });
+
+            d3.select("#checkShowRobots").on("change", function (e) {
+                drawRobots = d3.select("#checkShowRobots").property("checked");
+                var circle = document.querySelectorAll('circle')
+                if (drawRobots) {
+                    force.stop();
+                    circle.forEach(item => {
+                        item.remove()
+                    })
+                    node.append('circle')
+                        .attr("r", function (d) {
+                            return radius((d.rank / 2) + 1);
+                        })
+                        .attr("fill", function (d) {
+                            if (d.robots === "0") {
+                                return '#0984e3'
+                            }
+                            if (d.robots === "1") {
+                                return '#d63031'
+                            }
+                        })
+                    force.alphaTarget(0.5).restart();
+                } else {
+                    circle.forEach(item => {
+                        item.remove()
+                    })
+                    node.append('circle')
+                        .attr("r", function (d) {
+                            return radius((d.rank / 2) + 1);
+                        })
+                        .attr("fill", function (d) {
+                            return color(d.group);
+                        })
+                }
+            });
+
+            d3.select("#checkShowTitle").on("change", function (e) {
+                drawTitle = d3.select("#checkShowTitle").property("checked");
+                var circle = document.querySelectorAll('circle')
+                if (drawTitle) {
+                    force.stop();
+                    circle.forEach(item => {
+                        item.remove()
+                    })
+                    node.append('circle')
+                        .attr("r", function (d) {
+                            return radius((d.rank / 2) + 1);
+                        })
+                        .attr("fill", function (d) {
+                            if (d.id_t === undefined) {
+                                return '#0984e3'
+                            } else {
+                                return color(d.id_t);
+                            }
+
+                        })
+                    force.alphaTarget(0.5).restart();
+                } else {
+                    circle.forEach(item => {
+                        item.remove()
+                    })
+                    node.append('circle')
+                        .attr("r", function (d) {
+                            return radius((d.rank / 2) + 1);
+                        })
+                        .attr("fill", function (d) {
+                            return color(d.group);
+                        })
+                }
+            });
+
+            d3.select("#checkShowCode").on("change", function (e) {
+                drawCode = d3.select("#checkShowCode").property("checked");
+                var circle = document.querySelectorAll('circle')
+                if (drawCode) {
+                    force.stop();
+                    circle.forEach(item => {
+                        item.remove()
+                    })
+                    node.append('circle')
+                        .attr("r", function (d) {
+                            return radius((d.rank / 2) + 1);
+                        })
+                        .attr("fill", function (d) {
+                            if (d.code === 200) {
+                                return '#0984e3'
+                            }
+                            if (d.code === 301) {
+                                return '#fdcb6e'
+                            } else {
+                                return '#d63031'
+                            }
+                        })
+                    force.alphaTarget(0.5).restart();
+                } else {
+                    circle.forEach(item => {
+                        item.remove()
+                    })
+                    node.append('circle')
+                        .attr("r", function (d) {
+                            return radius((d.rank / 2) + 1);
+                        })
+                        .attr("fill", function (d) {
+                            return color(d.group);
+                        })
+                }
+            });
+
+            function dragstarted(d) {
+                if (!d3.event.active) force.alphaTarget(0.3).restart();
+                d.fx = d.x;
+                d.fy = d.y;
+            }
+
+            function dragged(d) {
+                d.fx = d3.event.x;
+                d.fy = d3.event.y;
+            }
+
+            function dragended(d) {
+                if (!d3.event.active) force.alphaTarget(0);
+                d.fx = null;
+                d.fy = null;
+            }
+
+            function onCheckGroupInABox() {
+                force.stop();
+                useGroupInABox = d3.select("#checkGroupInABox").property("checked");
+                force
+                    // .force("link", d3.forceLink(graph.links).distance(50).strength(
+                    // function (l) { return !useGroupInABox? 0.7 :
+                    //     l.source.group!==l.target.group ? 0 : 0.1;
+                    // }))
+                    .force("group").enableGrouping(useGroupInABox)
+
+                force.alphaTarget(0.5).restart();
+            }
+
+            <!--#include file="./template/list.html" -->
+        </script>
+    </div>
+</div>
+</body>
+</html>

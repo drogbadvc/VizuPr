@@ -1,0 +1,193 @@
+<!--#include file="./template/header.html" -->
+<body style="font-family: sans-serif;" data-layout="horizontal" data-topbar="dark">
+<!--#include file="./template/bar.html" -->
+<div class="row">
+    <div class="col-lg-12">
+        <div class="card">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-lg-6"><h4 class="card-title mb-4"><span id="root_url"></span></h4></div>
+                    <div class="col-lg-6"><a class="btn btn-light" href="code.html">Code</a>
+                        <a class="btn btn-light" href="nofollow.html">Nofollow</a></div>
+                </div>
+                <ul class="nav nav-tabs" id="myTab" role="tablist">
+                    <li class="nav-item">
+                        <a class="nav-link" href="force.html" role="tab"
+                           aria-controls="profile" aria-selected="false"> Group-in-a-box layout algorithm</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="hierarchy.html" role="tab"
+                           aria-controls="force" aria-selected="false"> Hierarchical Force algorithm</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="treecollaps.html" role="tab"
+                           aria-controls="force" aria-selected="false"> Collapsible Force algorithm</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" data-toggle="tab" href="forceatlas2.html" role="tab"
+                           aria-controls="profile" aria-selected="false">Force Atlas 2</a>
+                    </li>
+                </ul>
+                <div id="chart">
+                    <svg id="my-svg">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-12">
+        <div class="card">
+            <div class="card-body">
+                <h4 class="card-title mb-4">Urls List</h4>
+                <div class="table-responsive">
+                    <table class="table table-nowrap table-centered mb-0">
+                        <thead>
+                        <tr>
+                            <th scope="col">#</th>
+                            <th scope="col">URL</th>
+                            <th scope="col">Poids</th>
+                            <th scope="col">Variation PR</th>
+                        </tr>
+                        </thead>
+                        <tbody id="tbody">
+
+                        </tbody>
+                    </table>
+                    <div id="modals"></div>
+                </div>
+            </div>
+        </div>
+        <script>
+            var svg = d3.select(document.getElementById("my-svg")).append('g');
+            var vWidth = document.getElementById("chart").offsetWidth;
+            var vHeight = 900;
+
+            // Prepare our physical space
+            var g = d3.select('svg').attr('width', vWidth).attr('height', vHeight).select('g');
+
+            // Get the data from our CSV file
+            d3.csv('public/data.csv', function (error, vCsvData) {
+                if (error) throw error;
+
+                vData = d3.stratify()(vCsvData);
+                drawViz(vData);
+            });
+
+            function drawViz(vData) {
+                // Declare d3 layout
+                var vLayout = d3.forceSimulation()
+                    //.velocityDecay(0.2)
+                    .force('link', d3.forceLink(vLinks).id(function (d) {
+                        return d.id;
+                    }))
+                    .force('charge', d3.forceManyBody().strength(-40))
+                    .force("collide", d3.forceCollide())
+                    .force('center', d3.forceCenter(vWidth / 2, vHeight / 2))
+                    .alpha(0.1)
+                    .alphaDecay(0)
+                    .force("x", d3.forceX())
+                    .force("y", d3.forceY())
+
+
+                // Layout + Data
+                var vRoot = d3.hierarchy(vData);
+                var vNodes = vRoot.descendants();
+                var vLinks = vRoot.links();
+
+                var vLines = g.attr("stroke", "#999")
+                    .attr("stroke-opacity", 0.6)
+                    .selectAll('line').data(vLinks).enter().append('line');
+                var vCircles = g.attr("fill", "#fff")
+                    .attr("stroke", "#000")
+                    .attr("stroke-width", 0.5)
+                    .selectAll('circle').data(vNodes).enter().append('circle')
+                    .attr("fill", color)
+                    .attr("stroke", d => d.children ? null : "#ccc")
+                    .attr("id", (d, k) => "Ml" + (k + 1))
+                    .attr("r", function (d) {
+                        return circle_radius(d) / 1.6
+                    })
+                    .on('click', function (e) {
+                        let modalID = $(this).attr('id')
+                        let idOnly = modalID.split('Ml')[1]
+                        let modal = $('#Modal' + idOnly)
+                        modal.modal('toggle')
+                    })/*.call(
+                                        d3
+                                            .drag()
+                                            .on("start", dragstarted)
+                                            .on("drag", dragged)
+                                            .on("end", dragended)
+                                    );*/
+
+                vCircles.append("title")
+                    .text(d => d.data.id);
+
+                // Draw on screen
+                vLayout.nodes(vNodes).on('tick', ticked);
+                vLayout.force('link').links(vLinks);
+
+                // Animate on entry.
+                function ticked() {
+                    vLayout.on("tick", () => {
+                        vLines.attr('x1', function (d) {
+                            return d.source.x;
+                        })
+                            .attr('y1', function (d) {
+                                return d.source.y;
+                            })
+                            .attr('x2', function (d) {
+                                return d.target.x;
+                            })
+                            .attr('y2', function (d) {
+                                return d.target.y;
+                            });
+
+                        vCircles.attr('cx', function (d) {
+                            return d.x;
+                        })
+                            .attr('cy', function (d) {
+                                return d.y;
+                            });
+                    });
+                }
+
+                function circle_radius(d) {
+                    number = Math.sqrt(Math.floor(d.data.data.size))
+                    if (number === 0) {
+                        return 1;
+                    } else {
+                        return number
+                    }
+                }
+
+                // Color leaf nodes orange, and packages white or blue.
+                function color(d) {
+                    return d._children ? "#3182bd" : d.children ? "#c6dbef" : "#fd8d3c";
+                }
+
+                function dragstarted(d) {
+                    if (!d3.event.active) vLayout.alphaTarget(0.3).restart();
+                    d.fx = d.x;
+                    d.fy = d.y;
+                }
+
+                function dragged(d) {
+                    d.fx = d3.event.x;
+                    d.fy = d3.event.y;
+                }
+
+                function dragended(d) {
+                    if (!d3.event.active) vLayout.alphaTarget(0);
+                    d.fx = null;
+                    d.fy = null;
+                }
+
+                return d3.drag()
+                    .on("start", dragstarted)
+                    .on("drag", dragged)
+                    .on("end", dragended);
+            }
+
+            <!--#include file="./template/list.html" -->
+        </script>

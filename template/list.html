@@ -1,0 +1,82 @@
+spiderJson.nodes.forEach((value, key) => {
+const tbody = document.querySelector('#tbody')
+const tr = document.createElement('tr')
+const td_url = document.createElement('td')
+const td_id = document.createElement('td')
+const td_weight = document.createElement('td')
+const td_pr = document.createElement('td')
+
+tbody.appendChild(tr)
+
+tr.appendChild(td_id)
+tr.appendChild(td_url)
+tr.appendChild(td_weight)
+tr.appendChild(td_pr)
+
+const keys = key + 1
+
+td_id.innerHTML = keys
+td_url.innerHTML = value.url + '<a href="#" data-toggle="modal" data-target="#Modal' + value.id + '">' +
+    ' <i class="fa fa-search" style="vertical-align: middle"></i></a>'
+td_weight.innerHTML = value.weight
+td_pr.innerHTML = value.rank
+
+
+h2_join = Object.values(value.h2)
+const modals = document.querySelector('#modals')
+
+modals.insertAdjacentHTML('afterbegin', '<div class="modal fade" id="Modal' + value.id + '" aria-labelledby="Modal' + keys + 'Label" aria-hidden="true" tabindex="-1" role="dialog">\n' +
+    '  <div class="modal-dialog modal-dialog-centered modal-lg" role="document">\n' +
+        '    <div class="modal-content">\n' +
+            '      <div class="modal-header">\n' +
+                '        <h5 class="modal-title" id="Modal' + keys + 'Label">' + value.url + '</h5>\n' +
+                '        <button type="button" class="close" data-dismiss="modal" aria-label="Close">\n' +
+                    '          <span aria-hidden="true">&times;</span>\n' +
+                    '        </button>\n' +
+                '      </div>\n' +
+            '      <div class="modal-body">\n' +
+                '        <ul class="list-unstyled activity-wid">\n' +
+                    '             <li class="activity-list">' +
+                        '<div class="media"> <div class="mr-3"> ' +
+                            '<h5 class="font-size-14">Status Code <i class="mdi mdi-arrow-right text-primary align-middle ml-2"></i></h5> ' +
+                            '</div> <div class="media-body"> <div>' + value.code + ' </div> </div> </div> ' +
+                        '</li>\n' +
+                    '<li class="activity-list">' +
+                        '<div class="media"> <div class="mr-3"> ' +
+                            '<h5 class="font-size-14">Variation PR <i class="mdi mdi-arrow-right text-primary align-middle ml-2"></i></h5> ' +
+                            '</div> <div class="media-body"> <div>' + value.rank + ' </div> </div> </div> ' +
+                        '</li>\n' +
+                    '<li class="activity-list">' +
+                        '<div class="media"> <div class="mr-3"> ' +
+                            '<h5 class="font-size-14">Title <i class="mdi mdi-arrow-right text-primary align-middle ml-2"></i></h5> ' +
+                            '</div> <div class="media-body"> <div>' + value.title + ' </div> </div> </div> ' +
+                        '</li>\n' +
+                    '<li class="activity-list">' +
+                        '<div class="media"> <div class="mr-3"> ' +
+                            '<h5 class="font-size-14">Meta Description <i class="mdi mdi-arrow-right text-primary align-middle ml-2"></i></h5> ' +
+                            '</div> <div class="media-body"> <div>' + value.description + ' </div> </div> </div> ' +
+                        '</li>\n' +
+                    '<li class="activity-list">' +
+                        '<div class="media"> <div class="mr-3"> ' +
+                            '<h5 class="font-size-14">Canonical <i class="mdi mdi-arrow-right text-primary align-middle ml-2"></i></h5> ' +
+                            '</div> <div class="media-body"> <div>' + value.canonical + ' </div> </div> </div> ' +
+                        '</li>\n' +
+                    '<li class="activity-list">' +
+                        '<div class="media"> <div class="mr-3"> ' +
+                            '<h5 class="font-size-14">H1 <i class="mdi mdi-arrow-right text-primary align-middle ml-2"></i></h5> ' +
+                            '</div> <div class="media-body"> <div>' + value.h1 + '</div> </div> </div> ' +
+                        '</li>\n' +
+                    '<li class="activity-list">' +
+                        '<div class="media"> <div class="mr-3"> ' +
+                            '<h5 class="font-size-14">H2 <i class="mdi mdi-arrow-right text-primary align-middle ml-2"></i></h5> ' +
+                            '</div> <div class="media-body"> <div>' + h2_join.join("<p></p>") + ' </div> </div> </div> ' +
+                        '</li>\n' +
+                    '      </div>\n' +
+            '    </div>\n' +
+        '  </div>\n' +
+    '</div>')
+})
+
+const root_url = document.querySelector('#root_url')
+url = ("Starting url: " + spiderJson.nodes[0].url + "")
+root_url.append(url)

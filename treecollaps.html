@@ -1,0 +1,216 @@
+<!--#include file="./template/header.html" -->
+<body style="font-family: sans-serif;" data-layout="horizontal" data-topbar="dark">
+<!--#include file="./template/bar.html" -->
+<div class="row">
+    <div class="col-lg-12">
+        <div class="card">
+            <div class="card-body">
+                <h4 class="card-title mb-4"><span id="root_url"></span></h4>
+
+                <ul class="nav nav-tabs" id="myTab" role="tablist">
+                    <li class="nav-item">
+                        <a class="nav-link" href="force.html" role="tab"
+                           aria-controls="home" aria-selected="true"> Group-in-a-box layout algorithm</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="hierarchy.html" role="tab"
+                           aria-controls="force" aria-selected="false"> Hierarchical Force algorithm</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="treecollaps.html" role="tab"
+                           aria-controls="force" aria-selected="false"> Collapsible Force algorithm</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="forceatlas2.html" role="tab"
+                           aria-controls="profile" aria-selected="false">Force Atlas 2</a>
+                    </li>
+                </ul>
+                <svg>
+                    <g></g>
+                </svg>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-12">
+        <div class="card">
+            <div class="card-body">
+                <h4 class="card-title mb-4">Urls List</h4>
+                <div class="table-responsive">
+                    <table class="table table-nowrap table-centered mb-0">
+                        <thead>
+                        <tr>
+                            <th scope="col">#</th>
+                            <th scope="col">URL</th>
+                            <th scope="col">Poids</th>
+                            <th scope="col">Variation PR</th>
+                        </tr>
+                        </thead>
+                        <tbody id="tbody">
+
+                        </tbody>
+                    </table>
+                    <div id="modals"></div>
+                </div>
+            </div>
+        </div>
+        <script>
+            var vWidth = document.getElementById("myTab").offsetWidth;
+            var vHeight = 400;
+
+            // Prepare our physical space
+            var g = d3.select('svg')
+                .attr("width", vWidth)
+                .attr("height", vHeight)
+                .attr("viewbox", "0 0 " + vWidth + " " + vHeight).attr("preserveAspectRatio", "xMidYMid meet").select('g');
+
+            // Get the data from our CSV file
+            d3.csv('public/data.csv', function (error, vCsvData) {
+                if (error) throw error;
+
+                vData = d3.stratify()(vCsvData);
+                drawViz(vData);
+            });
+
+            function drawViz(vData) {
+                // Declare d3 layout
+                var vLayout = d3.forceSimulation()
+                    .force('link', d3.forceLink(vLinks).id(function (d) {
+                        return d.id;
+                    }).strength(1))
+                    .force('charge', d3.forceManyBody().strength(-200))
+                    .force("collide", d3.forceCollide())
+                    .force('center', d3.forceCenter(vWidth / 2, vHeight / 2))
+                    .force("x", d3.forceX())
+                    .force("y", d3.forceY())
+
+
+                // Layout + Data
+                var vRoot = d3.hierarchy(vData);
+                var vNodes = vRoot.descendants();
+                var vLinks = vRoot.links();
+
+                var vLines = g.attr("stroke", "#999")
+                    .attr("stroke-opacity", 0.6)
+                    .selectAll('line').data(vLinks).enter().append('line');
+                var vCircles = g.attr("fill", "#fff")
+                    .attr("stroke", "#000")
+                    .attr("stroke-width", 1.5)
+                    .selectAll('circle').data(vNodes).enter().append('circle')
+                    .attr("fill", color)
+                    .attr("stroke", d => d.children ? null : "#ccc")
+                    .attr("r", function (d) {
+                        return circle_radius(d)
+                    })
+                    .call(
+                        d3
+                            .drag()
+                            .on("start", dragstarted)
+                            .on("drag", dragged)
+                            .on("end", dragended)
+                    );
+
+                vCircles.append("title")
+                    .text(d => d.data.id);
+
+                // Draw on screen
+                vLayout.nodes(vNodes).on('tick', ticked);
+                vLayout.force('link').links(vLinks);
+
+                // Animate on entry.
+                function ticked() {
+                    vLayout.nodes().forEach(function (d) {
+                        if (!d.fixed) {
+                            var r = circle_radius(d) + 4, dx, dy, ly = 30;
+
+                            // #1: constraint all nodes to the visible screen:
+                            //d.x = Math.min(width - r, Math.max(r, d.x));
+                            //d.y = Math.min(height - r, Math.max(r, d.y));
+
+                            // #1.0: hierarchy: same level nodes have to remain with a 1 LY band vertically:
+                            if (d.children || d._children) {
+                                var py = 0;
+                                if (d.parent) {
+                                    py = d.parent.y;
+                                }
+                                d.py = d.y = py + d.depth * ly + r;
+                            }
+
+                            // #1a: constraint all nodes to the visible screen: links
+                            dx = Math.min(0, vWidth - r - d.x) + Math.max(0, r - d.x);
+                            dy = Math.min(0, vHeight - r - d.y) + Math.max(0, r - d.y);
+                            d.x += 2 * Math.max(-ly, Math.min(ly, dx));
+                            d.y += 2 * Math.max(-ly, Math.min(ly, dy));
+                            // #1b: constraint all nodes to the visible screen: charges ('repulse')
+                            dx = Math.min(0, vWidth - r - d.px) + Math.max(0, r - d.px);
+                            dy = Math.min(0, vHeight - r - d.py) + Math.max(0, r - d.py);
+                            d.px += 2 * Math.max(-ly, Math.min(ly, dx));
+                            d.py += 2 * Math.max(-ly, Math.min(ly, dy));
+
+                            // #2: hierarchy means childs must be BELOW parents in Y direction:
+                            if (d.parent) {
+                                d.y = Math.max(d.y, d.parent.y + ly);
+                                d.py = Math.max(d.py, d.parent.py + ly);
+                            }
+                        }
+                    })
+                    vLines.attr("x1", function (d) {
+                        return d.source.x;
+                    })
+                        .attr("y1", function (d) {
+                            return d.source.y;
+                        })
+                        .attr("x2", function (d) {
+                            return d.target.x;
+                        })
+                        .attr("y2", function (d) {
+                            return d.target.y;
+                        });
+
+                    vCircles.attr("cx", function (d) {
+                        return d.x;
+                    })
+                        .attr("cy", function (d) {
+                            return d.y;
+                        });
+                }
+
+                function circle_radius(d) {
+                    number = Math.sqrt(Math.floor(d.data.data.size))
+                    if (number === 0) {
+                        return 1;
+                    } else {
+                        return number
+                    }
+                }
+
+                // Color leaf nodes orange, and packages white or blue.
+                function color(d) {
+                    return d._children ? "#3182bd" : d.children ? "#c6dbef" : "#fd8d3c";
+                }
+
+                function dragstarted(d) {
+                    if (!d3.event.active) vLayout.alphaTarget(0.3).restart();
+                    d.fx = d.x;
+                    d.fy = d.y;
+                }
+
+                function dragged(d) {
+                    d.fx = d3.event.x;
+                    d.fy = d3.event.y;
+                }
+
+                function dragended(d) {
+                    if (!d3.event.active) vLayout.alphaTarget(0);
+                    d.fx = null;
+                    d.fy = null;
+                }
+
+                return d3.drag()
+                    .on("start", dragstarted)
+                    .on("drag", dragged)
+                    .on("end", dragended);
+
+            }
+
+            <!--#include file="./template/list.html" -->
+        </script>
